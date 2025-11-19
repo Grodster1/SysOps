@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 
 #define LICZBA_DZIECI 10
 
@@ -101,6 +102,130 @@ int zad7(void){
     return 0;
 }
 
+
+int zad1_v2(void){
+
+    srand(time(NULL));
+    int a = rand() % 11;
+    int b = rand() % 11 + 20;
+    printf("Wylosowane liczby to: a = %d, b = %d\n", a, b);
+
+    pid_t pid = fork();
+
+    if(pid == 0){
+        printf("Obliczanie sumy w procesie dziecka\n");
+        int suma = a+b;
+        exit(suma);
+    }
+    else{
+        int status;
+        wait(&status);
+        printf("Suma liczb to: %d + %d = %d\n",a, b, WEXITSTATUS(status));
+    }
+
+
+    return 0;
+}
+
+int zad2_v2(void){
+    //int num[1000000];
+    pid_t pid;
+    int size = 1000000;
+
+    srand(time(NULL));
+    int *num = calloc(size, sizeof(int));
+    for(int i = 0; i < size; ++i){
+        num[i] = rand() % 101;
+    }
+
+    for(int j = 0; j < 10; ++j){
+        pid = fork();
+        float mean = 0;
+        
+        if(pid == 0){
+            for(int k = j*100000; k < (j+1)*100000; ++k){
+                mean += (float)num[k];
+            }
+            mean = mean / 100000;
+            exit((int)mean);
+        }
+    }
+
+    float mean = 0;
+    int status;
+    for(int l = 0; l < 10; ++l){
+        wait(&status);
+        mean += WEXITSTATUS(status);
+    }
+
+    printf("Mean: %f\n", mean/10);
+    free(num);
+    return 0;
+}
+
+int zad3_v2(void){
+    srand(time(NULL));
+    //float num[1000000];
+    pid_t pid;
+    pid_t pids[10];
+    FILE *fptr;
+    int size = 1000000;
+
+    float *num = calloc(size, sizeof(float));
+
+    for(int i = 0; i < size; ++i){
+        num[i] = ((float)rand() - (float)(RAND_MAX/2))/(float)(RAND_MAX/2); 
+    }
+
+    for(int j = 0; j < 10; ++j){
+        pid = fork();
+        char buffer[100];
+        float sum = 0;
+
+        if(pid == 0){
+            for(int k = j * 100000; k < (j+1)*100000; ++k){
+                sum+=num[k];
+            }
+            sprintf(buffer, "sum%d.txt", getpid());
+            fptr = fopen(buffer, "w");
+            if(fptr == NULL){
+                printf("The file is not opened\n");
+            }
+            else{
+                printf("File opened by: %d\n", getpid());
+                fprintf(fptr, "%f\n", sum);
+                fclose(fptr);
+            }
+            exit(0);
+        }
+        else{pids[j] = pid;}
+    }
+
+    float temp;
+    float mean = 0;
+    int status;
+    for(int l = 0; l < 10; ++l){
+        char name[100];
+        waitpid(pids[l], &status, 0);
+        sprintf(name, "sum%d.txt", pids[l]);
+        fptr = fopen(name, "r");
+        if(fptr == NULL){
+            printf("Reading file failed PID: %d\n", pids[l]);
+            continue;
+        }
+
+        fscanf(fptr, "%f", &temp);
+        mean += temp;
+        fclose(fptr);
+        remove(name);
+    }
+    printf("Mean: %f\n", mean/size);
+    free(num);
+    num=NULL;
+
+    return 0;
+}
+
 int main(int argc, char *argv[]){
     if(argc > 1){
         if(strcmp(argv[1], "zad4") == 0){
@@ -117,6 +242,18 @@ int main(int argc, char *argv[]){
 
         if(strcmp(argv[1], "zad7") == 0){
             return zad7();
+        }
+
+        if(strcmp(argv[1], "zad1_v2") == 0){
+            return zad1_v2();
+        }
+
+        if(strcmp(argv[1], "zad2_v2") == 0){
+            return zad2_v2();
+        }
+
+        if(strcmp(argv[1], "zad3_v2") == 0){
+            return zad3_v2();
         }
     }
     return 0;

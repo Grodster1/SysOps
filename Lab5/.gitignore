@@ -41,6 +41,7 @@
 *.hex
 
 # Build
+
 build/
 
 # Debug files
